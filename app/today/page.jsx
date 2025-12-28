@@ -1,18 +1,18 @@
+import { getDailySlips } from "@/app/lib/store";
+
 export const dynamic = "force-dynamic";
 
-function generateMockSlips() {
-  return Array.from({ length: 10 }, (_, i) => ({
-    id: i + 1,
-    events: [
-      { match: "Match A", market: "Corners +8.5", odd: 1.22 },
-      { match: "Match B", market: "Corners +9.5", odd: 1.28 },
-      { match: "Match C", market: "Corners +10.5", odd: 1.31 },
-    ],
-  }));
-}
-
 export default function TodayPage() {
-  const slips = generateMockSlips();
+  const slips = getDailySlips();
+
+  if (!slips) {
+    return (
+      <main style={{ padding: 20 }}>
+        <h1>Fiches du jour (Corners)</h1>
+        <p>Les fiches du jour arrivent bientôt…</p>
+      </main>
+    );
+  }
 
   return (
     <main style={{ padding: 20, maxWidth: 900, margin: "0 auto" }}>
@@ -37,7 +37,7 @@ export default function TodayPage() {
           ))}
 
           <div style={{ marginTop: 8, fontWeight: 700 }}>
-            Cote totale :{" "}
+            Cote totale{" "}
             {slip.events
               .reduce((acc, e) => acc * e.odd, 1)
               .toFixed(2)}
@@ -47,5 +47,4 @@ export default function TodayPage() {
     </main>
   );
 }
-
 

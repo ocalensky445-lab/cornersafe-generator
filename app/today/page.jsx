@@ -1,39 +1,34 @@
-
-
 export const dynamic = "force-dynamic";
 
-
-
-function todayKey() {
-  // YYYY-MM-DD
-  return new Date().toISOString().slice(0, 10);
-}
-
 export default async function TodayPage() {
-  const key = `fiches:${todayKey()}`;
-  
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/today`, {
+    cache: "no-store",
+  });
 
-  if (!fiches || !Array.isArray(fiches) || fiches.length === 0) {
+  if (!res.ok) {
+    const txt = await res.text();
     return (
       <main style={{ padding: 20 }}>
         <h1>Fiches du jour (Corners)</h1>
-        <p>Aucune fiche pour aujourd’hui.</p>
+        <div style={{ color: "red" }}>Erreur API /api/today</div>
+        <pre style={{ whiteSpace: "pre-wrap" }}>{txt}</pre>
       </main>
     );
   }
+
+  const data = await res.json();
+  const fiches = Array.isArray(data.fiches) ? data.fiches : [];
 
   return (
     <main style={{ padding: 20, maxWidth: 900, margin: "0 auto" }}>
       <h1>Fiches du jour (Corners)</h1>
 
-      {fiches.map((fiche) => {
-        const total = (fiche.events || [])
-          .reduce((acc, e) => acc * (Number(e.odd) || 1), 1)
-          .toFixed(2);
-
-        return (
+      {fiches.length === 0 ? (
+        <div>Aucune fiche enregistrée pour aujourd’hui.</div>
+      ) : (
+        fiches.map((fiche, idx) => (
           <div
-            key={fiche.id}
+            key={idx}
             style={{
               border: "1px solid #ddd",
               borderRadius: 10,
@@ -42,21 +37,23 @@ export default async function TodayPage() {
             }}
           >
             <div style={{ fontWeight: 700, marginBottom: 6 }}>
-              FICHE #{fiche.id}
+              FICHE #{idx + 1}
             </div>
 
-            {(fiche.events || []).map((e, idx) => (
-              <div key={idx}>
-                {idx + 1}) {e.match} — {e.market} ({e.odd})
+            {(fiche?.events || []).map((ev, i) => (
+              <div key={i}>
+                {i + 1}) {ev}
               </div>
             ))}
 
-            <div style={{ marginTop: 8, fontWeight: 700 }}>
-              Cote totale : {total}
-            </div>
+            {fiche?.total && (
+              <div style={{ marginTop: 8, fontWeight: 700 }}>
+                Cote totale : {fiche.total}
+              </div>
+            )}
           </div>
-        );
-      })}
+        ))
+      )}
     </main>
   );
 }

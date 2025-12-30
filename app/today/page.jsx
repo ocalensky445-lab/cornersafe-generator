@@ -1,8 +1,8 @@
-import { Redis } from "@upstash/redis";
+
 
 export const dynamic = "force-dynamic";
 
-const redis = Redis.fromEnv();
+
 
 function todayKey() {
   // YYYY-MM-DD
@@ -11,7 +11,7 @@ function todayKey() {
 
 export default async function TodayPage() {
   const key = `fiches:${todayKey()}`;
-  const fiches = await redis.get(key);
+  
 
   if (!fiches || !Array.isArray(fiches) || fiches.length === 0) {
     return (

@@ -1,34 +1,37 @@
-import { Redis } from "@upstash/redis";
+import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
-
-const redis = Redis.fromEnv();
+export const runtime = "nodejs";
 
 export async function GET(request) {
+  // 1) Sécurité cron
   const auth = request.headers.get("authorization");
-
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response("Unauthorized", { status: 401 });
+    return new NextResponse("Unauthorized", { status: 401 });
   }
 
-  // 🔥 FICHES DÉMO (on branchera les vraies cotes plus tard)
-  const fiches = Array.from({ length: 10 }, (_, i) => ({
-    id: i + 1,
-    events: [
-      { match: `Match ${i * 3 + 1}`, market: "Corners", odd: 1.28 },
-      { match: `Match ${i * 3 + 2}`, market: "Corners", odd: 1.30 },
-      { match: `Match ${i * 3 + 3}`, market: "Corners", odd: 1.32 }
-    ],
-    totalOdd: 2.19
-  }));
+  // 2) Vérif env Upstash (évite crash build/runtime)
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-  // 🧠 On stocke les fiches du jour
-  const dateKey = new Date().toISOString().slice(0, 10);
-  await redis.set(`fiches:${dateKey}`, fiches);
+  if (!url || !token) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Missing Upstash env vars",
+        need: ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
+      },
+      { status: 500 }
+    );
+  }
 
-  return Response.json({
-    ok: true,
-    storedFor: dateKey,
-    count: fiches.length
-  });
+  // 3) Import + init Redis uniquement ici (pas au top)
+  const { Redis } = await import("@upstash/redis");
+  const redis = new Redis({ url, token });
+
+  // 4) Exemple: on écrit une “preuve de vie” (tu pourras remplacer par ta logique)
+  const now = new Date().toISOString();
+  await redis.set("cron:last_run", now);
+
+  return NextResponse.json({ ok: true, now });
 }

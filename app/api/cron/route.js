@@ -1,34 +1,28 @@
 import { NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
 
-// ⚠️ IMPORTANT : forcer le mode dynamique
 export const dynamic = "force-dynamic";
 
-// Initialisation Redis (Upstash)
-const redis = Redis.fromEnv();
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN,
+});
 
 export async function GET(request) {
   try {
-    // 1️⃣ Vérification du CRON SECRET
     const auth = request.headers.get("authorization");
-
     if (auth !== "Bearer calenskycornersafe34715029") {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // 2️⃣ Exemple d’action cron (test simple)
+    // test écriture
     const now = new Date().toISOString();
-
     await redis.set("last_cron_run", now);
 
-    return NextResponse.json({
-      success: true,
-      message: "Cron exécuté avec succès",
-      time: now,
-    });
-  } catch (error) {
-    console.error("CRON ERROR:", error);
-
+    return NextResponse.json({ success: true, time: now });
+  } catch (err) {
+    console.error("CRON ERROR:", err);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
+
